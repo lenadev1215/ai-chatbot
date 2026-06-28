@@ -1,26 +1,119 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #eef4fb;
+  --foreground: #2f3a4a;
+  --text-muted: #5d6b80;
+  --accent: #5b7cfa;
+
+  --dawn-aqua: #d2eef5;
+  --dawn-sky: #cfe2fb;
+  --dawn-periwinkle: #d8ddfb;
+  --dawn-mist: #e6eefb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-dawn-aqua: var(--dawn-aqua);
+  --color-dawn-sky: var(--dawn-sky);
+  --color-dawn-periwinkle: var(--dawn-periwinkle);
+  --color-dawn-mist: var(--dawn-mist);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.dawn-bg {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.25), transparent 40%),
+    radial-gradient(circle at 18% 22%, rgba(198, 234, 243, 0.85), transparent 50%),
+    radial-gradient(circle at 82% 28%, rgba(194, 218, 250, 0.85), transparent 50%),
+    radial-gradient(circle at 90% 64%, rgba(250, 202, 226, 0.68), transparent 46%),
+    radial-gradient(circle at 10% 56%, rgba(251, 234, 180, 0.78), transparent 52%),
+    radial-gradient(circle at 62% 82%, rgba(208, 214, 250, 0.85), transparent 56%),
+    radial-gradient(circle at 26% 78%, rgba(192, 216, 249, 0.78), transparent 56%),
+    var(--background);
+}
+
+/* 글래스 공용 표면 — 입력창·말풍선이 공유하는 유리 재질.
+   GlassButton과 같은 레시피(반투명 그라데이션 + 블러 + saturate + inset 하이라이트). */
+.glass-surface {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0.06)
+  );
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 8px 32px rgba(31, 38, 135, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.25);
+}
+
+/* 등장 모션 */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.u-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 메시지 등장 — user는 우측에서, assistant는 좌측에서 미끄러져 들어온다 */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.u-slide-right {
+  animation: slide-in-right 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.u-slide-left {
+  animation: slide-in-left 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 품질 플로어: 모션 줄이기 존중 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
