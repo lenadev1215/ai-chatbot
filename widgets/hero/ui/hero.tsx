@@ -1,39 +1,26 @@
 "use client";
 
-import { useState } from "react";
 import { GlassPrompt } from "@/shared/ui/glass-prompt";
 import {
   RecommendedQuestions,
   RECOMMENDED_QUESTIONS,
 } from "@/features/recommended-questions";
-import { ChatView } from "@/features/chat-stream";
-import type { ChatMessage } from "@/entities/message";
+import { ChatView, useChatStream } from "@/features/chat-stream";
 import { cn } from "@/shared/lib";
 import { useTypingPlaceholder } from "../lib/use-typing-placeholder";
 
 /**
  * idle: rows = 1fr·auto·1fr → 입력창이 수직 중앙.
  * chat: rows = 1fr·auto·0fr → 하단여백이 접히며 입력창이 아래로 내려가고 채팅이 펼쳐진다.
- * LLM 연동 전이라 답변은 임시 에코(추후 스트리밍 이식).
+ * 답변은 /api/chat 게이트웨이를 통해 Claude로부터 스트리밍된다(useChatStream).
  */
 export function Hero() {
-  const [ messages, setMessages ] = useState<ChatMessage[]>([]);
+  const { messages, sendMessage } = useChatStream();
   const placeholder = useTypingPlaceholder(RECOMMENDED_QUESTIONS);
   const started = messages.length > 0;
 
   const handleSend = (text: string) => {
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: text,
-    };
-    // TODO: 실제 LLM 스트리밍으로 교체. 지금은 전환 확인용 임시 응답.
-    const placeholderAnswer: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: "곧 제가 그를 대신해 답해드릴게요. (답변 연동 예정)",
-    };
-    setMessages((prev) => [ ...prev, userMessage, placeholderAnswer ]);
+    void sendMessage(text);
   };
 
   return (
@@ -60,9 +47,11 @@ export function Hero() {
         >
           <div className="min-h-0 overflow-hidden">
             <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              안녕하세요.
+              반갑습니다!
             </h1>
-            <p className="mt-3 text-base text-text-muted">AI와 함께하는 프론트엔드 개발자, 김가영입니다.</p>
+            <p className="mt-3 text-base text-text-muted">
+              AI와 함께하는 프론트엔드 개발자, 김가영이에요.
+            </p>
           </div>
         </div>
 
