@@ -5,7 +5,7 @@ import type { ChatMessage } from "@/entities/message";
 const CHUNK_INTERVAL = 12;
 const ERROR_FALLBACK = "연결이 잠시 끊겼습니다. 잠시 후 다시 시도해 주세요.";
 
-type WireChunk = { content?: string; error?: string };
+type WireChunk = { content?: string; error?: string; followups?: string[] };
 
 /**
  * 채팅 스트리밍 훅 — /api/chat 게이트웨이가 흘리는 줄 단위 JSON을 수신해
@@ -15,6 +15,7 @@ type WireChunk = { content?: string; error?: string };
 export function useChatStream() {
   const [ messages, setMessages ] = useState<ChatMessage[]>([]);
   const [ isStreaming, setIsStreaming ] = useState(false);
+  const [ followups, setFollowups ] = useState<string[]>([]);
 
   // 전송 시점의 최신 대화 이력을 stale 없이 읽기 위한 거울.
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -28,6 +29,7 @@ export function useChatStream() {
   const streamDoneRef = useRef(false);
   const assistantIdRef = useRef<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
+  const pendingFollowupsRef = useRef<string[]>([]); // 답변 완료 시 노출할 후속질문 보류함
 
   const stopTick = useCallback(() => {
     if ( tickRef.current ) {
@@ -35,6 +37,13 @@ export function useChatStream() {
       tickRef.current = null;
     }
   }, []);
+
+  // 스트리밍 종료 — tick 정지 + 후속질문을 이 시점에 노출(답변이 다 그려진 뒤).
+  const finishStreaming = useCallback(() => {
+    stopTick();
+    setIsStreaming(false);
+    setFollowups(pendingFollowupsRef.current);
+  }, [ stopTick ]);
 
   const startTick = useCallback(() => {
     if ( tickRef.current ) return;
@@ -55,11 +64,10 @@ export function useChatStream() {
 
       // 큐가 비고 스트림도 끝났으면 종료.
       if ( streamDoneRef.current ) {
-        stopTick();
-        setIsStreaming(false);
+        finishStreaming();
       }
     }, CHUNK_INTERVAL);
-  }, [ stopTick ]);
+  }, [ finishStreaming ]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -87,7 +95,9 @@ export function useChatStream() {
       displayedRef.current = "";
       queueRef.current = [];
       streamDoneRef.current = false;
+      pendingFollowupsRef.current = [];
       setIsStreaming(true);
+      setFollowups([]);
       setMessages((prev) => [ ...prev, userMessage, assistantMessage ]);
 
       const controller = new AbortController();
@@ -123,6 +133,8 @@ export function useChatStream() {
               const chunk = JSON.parse(line) as WireChunk;
               if ( chunk.error ) {
                 queueRef.current.push(ERROR_FALLBACK);
+              } else if ( chunk.followups ) {
+                pendingFollowupsRef.current = chunk.followups;
               } else if ( chunk.content ) {
                 queueRef.current.push(chunk.content);
               }
@@ -141,12 +153,11 @@ export function useChatStream() {
 
         // 받아온 게 없으면 tick에 맡기지 않고 즉시 종료 처리.
         if ( queueRef.current.length === 0 ) {
-          stopTick();
-          setIsStreaming(false);
+          finishStreaming();
         }
       }
     },
-    [ isStreaming, startTick, stopTick ],
+    [ isStreaming, startTick, finishStreaming ],
   );
 
   // 언마운트 시 진행 중 요청·tick 정리.
@@ -157,5 +168,5 @@ export function useChatStream() {
     };
   }, [ stopTick ]);
 
-  return { messages, isStreaming, sendMessage };
+  return { messages, isStreaming, followups, sendMessage };
 }
